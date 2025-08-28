@@ -2,7 +2,7 @@
 
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import { Calendar, LayoutDashboard, Wallet, Zap } from 'lucide-react';
+import { Calendar, LayoutDashboard, Wallet, Zap, Menu } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
 import {
@@ -12,6 +12,11 @@ import {
   TooltipTrigger,
 } from "@/components/ui/tooltip";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import {
+  Sheet,
+  SheetContent,
+  SheetTrigger,
+} from "@/components/ui/sheet";
 
 
 const navItems = [
@@ -58,7 +63,7 @@ export function Sidebar() {
             <CardDescription>
               Unlock all features and get unlimited access to our support team.
             </CardDescription>
-          </Header>
+          </CardHeader>
           <CardContent>
             <Button size="sm" className="w-full">
               Upgrade
@@ -69,13 +74,6 @@ export function Sidebar() {
     </aside>
   );
 }
-
-import {
-  Sheet,
-  SheetContent,
-  SheetTrigger,
-} from "@/components/ui/sheet"
-import { Menu } from 'lucide-react';
 
 export function MobileSidebar() {
   const pathname = usePathname();
