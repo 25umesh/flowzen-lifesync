@@ -7,6 +7,7 @@ import { Sidebar, MobileSidebar } from '@/components/sidebar';
 export const metadata: Metadata = {
   title: 'FlowZen',
   description: 'Organize your life, seamlessly.',
+  manifest: '/manifest.json',
 };
 
 export default function RootLayout({
