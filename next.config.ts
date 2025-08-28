@@ -31,6 +31,10 @@ const nextConfig: NextConfig = {
       },
     ],
   },
+  experimental: {
+    // This is the fix for the cross-origin request error.
+    allowedDevOrigins: ["*.cloudworkstations.dev"],
+  },
 };
 
 export default withPWA(nextConfig);
