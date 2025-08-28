@@ -2,10 +2,11 @@
 
 import { useState, useMemo, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
-import { Plus, Sparkles, CalendarCheck, ClipboardList, Clock } from 'lucide-react';
+import { Plus, Sparkles, CalendarCheck, ClipboardList, Clock, BrainCircuit } from 'lucide-react';
 import {
   Card,
   CardContent,
+  CardDescription,
   CardHeader,
   CardTitle,
 } from '@/components/ui/card';
@@ -20,8 +21,11 @@ import { format } from 'date-fns';
 import Image from 'next/image';
 import type { DetectDeadlineOutput } from '@/ai/flows/deadline-detection';
 import { hasTime } from '@/lib/utils';
-import { runSendConfirmationEmail } from './actions';
+import { runSendConfirmationEmail, runSmartSchedule, runSmartReminder } from './actions';
 import { useToast } from '@/hooks/use-toast';
+import { Textarea } from '@/components/ui/textarea';
+import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
+import { Loader2 } from 'lucide-react';
 
 export default function DashboardPage() {
   const [items, setItems] = useState<FlowZenItem[]>([]);
@@ -31,6 +35,10 @@ export default function DashboardPage() {
   const [isAIDetectorOpen, setIsAIDetectorOpen] = useState(false);
   const [editingItem, setEditingItem] = useState<FlowZenItem | undefined>(undefined);
   const { toast } = useToast();
+
+  const [scheduleQuery, setScheduleQuery] = useState('');
+  const [isScheduling, setIsScheduling] = useState(false);
+  const [scheduleResult, setScheduleResult] = useState('');
 
   useEffect(() => {
     const storedItems = localStorage.getItem('flowzen-items');
@@ -118,6 +126,24 @@ export default function DashboardPage() {
       setEditingItem(defaultValues as FlowZenItem); // a bit of a hack
       setIsAddDialogOpen(true);
   }
+  
+  const handleGenerateSchedule = async () => {
+    if (!scheduleQuery) return;
+    setIsScheduling(true);
+    setScheduleResult('');
+    try {
+        const result = await runSmartSchedule(scheduleQuery);
+        if (result.success && result.data) {
+            setScheduleResult(result.data.schedule);
+        } else {
+            toast({ variant: 'destructive', title: "Error", description: result.error });
+        }
+    } catch (error) {
+        toast({ variant: 'destructive', title: "Error", description: 'Failed to generate schedule.'});
+    } finally {
+        setIsScheduling(false);
+    }
+  }
 
   if (!isMounted) {
     return null; // or a loading spinner
@@ -174,10 +200,42 @@ export default function DashboardPage() {
             )}
           </CardContent>
         </Card>
-
+        
         <Card className="lg:col-span-2">
+            <CardHeader className="flex flex-row items-center justify-between">
+                <CardTitle>Smart Scheduler</CardTitle>
+                <BrainCircuit className="h-5 w-5 text-muted-foreground" />
+            </CardHeader>
+            <CardContent>
+                <div className="space-y-4">
+                    <p className="text-sm text-muted-foreground">
+                        Input your assignments and deadlines, and the AI will generate an optimized study schedule for you.
+                    </p>
+                    <Textarea
+                        placeholder="e.g., I have a math exam on Friday and a history paper due next Monday. I have 2 hours to study each day."
+                        value={scheduleQuery}
+                        onChange={(e) => setScheduleQuery(e.target.value)}
+                        className="resize-none"
+                    />
+                    <Button onClick={handleGenerateSchedule} disabled={isScheduling || !scheduleQuery}>
+                        {isScheduling ? <Loader2 className="animate-spin" /> : <Sparkles className="mr-2" />}
+                        Generate Schedule
+                    </Button>
+                    {scheduleResult && (
+                        <Alert>
+                            <AlertTitle>Your AI-Generated Schedule</AlertTitle>
+                            <AlertDescription>
+                                <div className="prose prose-sm dark:prose-invert" dangerouslySetInnerHTML={{ __html: scheduleResult }} />
+                            </AlertDescription>
+                        </Alert>
+                    )}
+                </div>
+            </CardContent>
+        </Card>
+
+        <Card className="lg:col-span-3">
           <CardHeader className="flex flex-row items-center justify-between">
-            <CardTitle>Task List</CardTitle>
+            <CardTitle>Priority Tasks</CardTitle>
             <ClipboardList className="h-5 w-5 text-muted-foreground" />
           </CardHeader>
           <CardContent>
@@ -210,6 +268,7 @@ export default function DashboardPage() {
                 onSave={handleSaveItem}
                 onFinished={() => setIsAddDialogOpen(false)}
                 defaultValues={editingItem}
+                runSmartReminder={runSmartReminder}
             />
         </DialogContent>
       </Dialog>

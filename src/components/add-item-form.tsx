@@ -20,7 +20,7 @@ import {
   PopoverTrigger,
 } from '@/components/ui/popover';
 import { cn, hasTime } from '@/lib/utils';
-import { CalendarIcon, PlusCircle, Trash2 } from 'lucide-react';
+import { CalendarIcon, PlusCircle, Trash2, Sparkles, Loader2 } from 'lucide-react';
 import { Calendar } from '@/components/ui/calendar';
 import { format, setHours, setMinutes } from 'date-fns';
 import {
@@ -30,12 +30,14 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
-import { itemCategories, type FlowZenItem } from '@/lib/types';
+import { itemCategories, type FlowZenItem, Reminder } from '@/lib/types';
 import { Textarea } from './ui/textarea';
 import { Switch } from './ui/switch';
 import React, { useState } from 'react';
 import { DialogDescription, DialogFooter, DialogHeader, DialogTitle } from './ui/dialog';
 import { ScrollArea } from './ui/scroll-area';
+import { SuggestRemindersOutput } from '@/ai/flows/smart-reminder-flow';
+import { useToast } from '@/hooks/use-toast';
 
 const reminderSchema = z.object({
     value: z.coerce.number().min(1, "Must be at least 1"),
@@ -69,10 +71,14 @@ type AddItemFormProps = {
   onSave: (item: Omit<FlowZenItem, 'id' | 'completed'>) => void;
   onFinished: () => void;
   defaultValues?: Partial<FlowZenItem>;
+  runSmartReminder: (title: string, date: Date) => Promise<{ success: boolean; data?: SuggestRemindersOutput; error?: string }>;
 };
 
-export function AddItemForm({ onSave, onFinished, defaultValues }: AddItemFormProps) {
+export function AddItemForm({ onSave, onFinished, defaultValues, runSmartReminder }: AddItemFormProps) {
     const [step, setStep] = useState(1);
+    const [isSuggesting, setIsSuggesting] = useState(false);
+    const { toast } = useToast();
+
     const defaultDate = defaultValues?.date ? new Date(defaultValues.date) : undefined;
     const defaultHasTime = defaultDate ? hasTime(defaultDate) : false;
     const defaultTime = defaultDate && defaultHasTime ? format(defaultDate, 'HH:mm') : '09:00';
@@ -91,7 +97,7 @@ export function AddItemForm({ onSave, onFinished, defaultValues }: AddItemFormPr
     },
   });
 
-  const { fields, append, remove } = useFieldArray({
+  const { fields, append, remove, replace } = useFieldArray({
       control: form.control,
       name: "reminders"
   });
@@ -103,6 +109,45 @@ export function AddItemForm({ onSave, onFinished, defaultValues }: AddItemFormPr
       if (isValid) {
           setStep(2);
       }
+  }
+
+  const handleSuggestReminders = async () => {
+    const title = form.getValues('title');
+    const date = form.getValues('date');
+    if (!title || !date) {
+        toast({
+            variant: 'destructive',
+            title: 'Missing Information',
+            description: 'Please provide a title and date to get smart reminder suggestions.'
+        });
+        return;
+    }
+
+    setIsSuggesting(true);
+    try {
+        const result = await runSmartReminder(title, date);
+        if (result.success && result.data && result.data.reminders.length > 0) {
+            const newReminders = result.data.reminders.map(r => ({
+                value: r.value,
+                unit: r.unit as 'minutes' | 'hours' | 'days' | 'seconds'
+            }));
+            replace(newReminders as Reminder[]);
+            toast({
+                title: 'Reminders Suggested!',
+                description: 'The AI has added smart reminders for you.'
+            });
+        } else {
+            toast({
+                variant: 'destructive',
+                title: 'Suggestion Failed',
+                description: result.error || "The AI couldn't suggest any reminders for this item."
+            });
+        }
+    } catch(e) {
+        toast({ variant: 'destructive', title: 'Error', description: 'An unexpected error occurred.' });
+    } finally {
+        setIsSuggesting(false);
+    }
   }
 
   function onSubmit(values: z.infer<typeof formSchema>) {
@@ -297,7 +342,13 @@ export function AddItemForm({ onSave, onFinished, defaultValues }: AddItemFormPr
                             />
                         
                         <div className="space-y-4">
-                            <FormLabel>Reminders</FormLabel>
+                            <div className="flex items-center justify-between">
+                                <FormLabel>Reminders</FormLabel>
+                                <Button type="button" variant="outline" size="sm" onClick={handleSuggestReminders} disabled={isSuggesting}>
+                                    {isSuggesting ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Sparkles className="mr-2 h-4 w-4" />}
+                                    AI Suggest
+                                </Button>
+                            </div>
                             {fields.map((field, index) => (
                                 <div key={field.id} className="grid grid-cols-[1fr_1fr_auto] gap-2 items-end">
                                     <FormField

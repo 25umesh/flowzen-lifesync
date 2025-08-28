@@ -2,7 +2,7 @@
 
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import { Calendar, LayoutDashboard, Zap } from 'lucide-react';
+import { Calendar, LayoutDashboard, Wallet, Zap } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
 import {
@@ -11,11 +11,13 @@ import {
   TooltipProvider,
   TooltipTrigger,
 } from "@/components/ui/tooltip";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 
 
 const navItems = [
   { href: '/', label: 'Dashboard', icon: LayoutDashboard },
   { href: '/calendar', label: 'Calendar', icon: Calendar },
+  { href: '/expenses', label: 'Expense Tracker', icon: Wallet },
 ];
 
 export function Sidebar() {
@@ -56,7 +58,7 @@ export function Sidebar() {
             <CardDescription>
               Unlock all features and get unlimited access to our support team.
             </CardDescription>
-          </CardHeader>
+          </Header>
           <CardContent>
             <Button size="sm" className="w-full">
               Upgrade
@@ -74,7 +76,6 @@ import {
   SheetTrigger,
 } from "@/components/ui/sheet"
 import { Menu } from 'lucide-react';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from './ui/card';
 
 export function MobileSidebar() {
   const pathname = usePathname();

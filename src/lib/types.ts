@@ -17,3 +17,19 @@ export interface FlowZenItem {
   email?: string;
   reminders?: Reminder[];
 }
+
+
+export type TransactionType = 'Income' | 'Expense';
+export type TransactionCategory = 'Student' | 'Professional';
+
+export const transactionCategories: TransactionCategory[] = ['Student', 'Professional'];
+
+
+export interface Transaction {
+    id: string;
+    date: Date;
+    description: string;
+    amount: number;
+    type: TransactionType;
+    category: TransactionCategory;
+}
